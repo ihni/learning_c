@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define STACK_LIMIT 256
 #define CHAR_LIMITER_SIZE 3
@@ -7,13 +8,9 @@
 const char CLOSING_CHAR[CHAR_LIMITER_SIZE] = {')', ']', '}'};
 const char OPENING_CHAR[CHAR_LIMITER_SIZE] = {'(', '[', '{'};
 
-#define true 1
-#define false 0
-typedef int bool;
-
+//
 // function declarations:
-// all related to stack operations and checking
-// if char is a valid pair
+//
 void push(char *element, char stack_arr[], int *stack_size);
 void pop(char stack_arr[], int *stack_size);
 char peek(char stack_arr[], int *stack_size);
@@ -25,7 +22,11 @@ void stack_underflow(void);
 bool is_closed_char(char *element, char stack_arr[], int *stack_size);
 bool is_paired_char(char *element, char stack_arr[],  int *stack_size);
 
-// function definitions
+void parse_input(char stack[], bool *ptr_paired_flag, int *ptr_stack_size); 
+
+//
+// function definitions:
+//
 void push(char *element, char stack_arr[], int *stack_size) {
     if (is_full(stack_size)) {
         stack_overflow();
@@ -74,7 +75,6 @@ bool is_closed_char(char *element, char stack_arr[], int *stack_size) {
 
 bool is_paired_char(char *element, char stack_arr[], int *size) {
     int matching_idx = 0;
-    char buffer;
 
     for (int i = 0; i < CHAR_LIMITER_SIZE; i++) {
         if (*element == CLOSING_CHAR[i]) {
@@ -88,16 +88,32 @@ bool is_paired_char(char *element, char stack_arr[], int *size) {
         return false;
     }
     
-    for (int i = 0; i < CHAR_LIMITER_SIZE; i++) {
-        buffer = peek(stack_arr, size);
-        if (buffer == OPENING_CHAR[i]) {
-            return true;
-        }
+    // match open character with closing character's index
+    if (peek(stack_arr, size) == OPENING_CHAR[matching_idx]) {
+        return true;
+    } else {
+        return false;
     }
-
-    return false;
 }
 
+void parse_input(char stack[], bool *ptr_paired_flag, int *ptr_stack_size) {
+    char buffer;
+    while ((buffer = getchar()) != '\n') {
+        if (is_closed_char(&buffer, stack, ptr_stack_size)) {
+            if (is_empty(ptr_stack_size)) {
+                *ptr_paired_flag = false;
+                break;
+            }
+            if (is_paired_char(&buffer, stack, ptr_stack_size) == 0) {
+                *ptr_paired_flag = false;
+                break;
+            }
+            pop(stack, ptr_stack_size);
+        } else {
+            push(&buffer, stack, ptr_stack_size);
+        }
+    }
+}
 
 int main(void) {
     // stack size keeps track of the top of stack
@@ -107,36 +123,16 @@ int main(void) {
     //
     // stack is filled with 0 initially
     char stack[STACK_LIMIT] = {0};
-    char buffer;
     bool paired_flag = true;
     int stack_size = 0;
 
-    printf("Enter parenthesees and/or braces: ");
-
-    while ((buffer = getchar()) != '\n') {
-        if (is_closed_char(&buffer, stack, &stack_size)) {
-            if (is_empty(&stack_size)) {
-                printf("stack is empty, first char is a closing char\n");
-                paired_flag = false;
-                break;
-            }
-            if (is_paired_char(&buffer, stack, &stack_size) == 0) {
-                printf("char is not paired!\n");
-                paired_flag = false;
-                break;
-            }
-            pop(stack, &stack_size);
-        } else {
-            push(&buffer, stack, &stack_size);
-        }
-    }
-    
-    printf("\nFinished parsing: result:\nStack size: %d\n", stack_size);
+    printf("enter parenthesees and/or braces: ");
+    parse_input(stack, &paired_flag, &stack_size);
 
     if (stack_size != 0 || paired_flag == 0) {
-        printf("Parentheses/braces are NOT nested properly\n");
+        printf("parentheses/braces are not nested properly\n");
     } else {
-        printf("Parentheses/braces are nested properly\n");
+        printf("parentheses/braces are nested properly\n");
     }
 
     return 0;
